@@ -1,0 +1,127 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+	<head>
+		<title>MacroBull: %(PATH)s</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=%(ENCODING)s"/> 
+		%(FAVICON)s
+		<!-- you can also give custom styles to the display table -->
+		<style>
+			#dropbox-index { 
+				font-size:14px;
+				padding-top: 105px;
+				/*margin: auto 2%% auto 2%%;*/
+			}
+			thead {
+				color: rgb(11, 123, 245);
+				background: rgba(189, 189, 255, 0.6);
+				position:fixed;
+				margin-top: -18px;
+			}
+			.size , .date {
+				color: rgba(0,0,0,0.6);
+			}
+			
+			#dropbox-index-list {
+				/*margin: auto 5%% auto 5%%;*/
+				margin: auto;
+			}
+			#dropbox-index-list tr {
+				line-height:25px;
+			}
+			
+			#dropbox-index a { color: green; }
+			#dropbox-index-footer {
+				color:rgba(40, 104, 218, 0.5);
+				margin: 10px;
+				padding-bottom: 10px;
+			}
+			#dropbox-index-footer a {color:rgba(33, 143, 90, 0.5);}
+			
+			body {
+				margin-left: 5%%;
+				margin-right:5%%;
+				background: rgba(255,255,255,0);
+			}
+
+			#global-title {
+				/* margin-right: 5%%; */
+				padding-bottom: 2%%;
+				position: fixed;
+				width: 90%%;
+				top: 0;
+				padding-top: 1%%;
+				font-size: 28px;
+				/*background: rgba(255, 248, 71, 0.53);*/
+				background: rgb(211, 255, 155);
+				background:-webkit-gradient(linear, 0 0, 0 bottom, from(rgb(211, 255, 155)), to(rgba(211, 255, 155,0.5)));  
+				color: rgba(58, 65, 236, 0.75);
+				border-radius: 5px;
+			}
+			#browse-global-actions-bar {
+				/*margin-right: 5%%;*/
+				margin-bottom: 1%%;
+				margin-top: 1%%;
+				font-size: 20px;
+				padding-left: 2%%;
+			}
+			#browse-global-actions-bar ,#browse-global-actions-bar a{
+				color:rgba(79, 135, 255, 0.81);
+			}
+			#global-actions {
+				font-size: small;
+				float: right;
+				margin-right: 2%%;
+				margin-top: 10px;
+			}
+			.header-img {
+				height:48px;
+				width:48px;
+				margin-bottom: -10px;
+				margin-top: -10px;
+			}
+			
+			.gb {
+				font-size:36px;
+				font-family: monospace;
+				position: fixed; 
+				top: 0px; 
+				left: 0px; 
+				width: 100%% ;
+				height: 100%%; 
+				z-index: -9; 
+				-webkit-filter: blur(5px);
+				border:none;
+			}
+			
+			#index {
+				background:rgba(255, 255, 255, 0.7);
+				border-radius: 5px;
+			}
+			
+			table {
+			}
+		</style>
+	</head>
+	<body>
+		<div id="index">
+			<div id="global-title">
+				<img class="header-img" src="https://dl.dropboxusercontent.com/u/73985358/.icons/favicon.png">		
+				Macrobull's Dropbox Public Files
+				
+				<div id="browse-global-actions-bar">	
+					%(FULLPATH)s
+					<div id="global-actions">
+						Search:(not enabled)
+						<input disabled="disabled" placeholder="regex avaliable"/>
+						<a href="https://www.google.com">TODO:share this to...</a>
+					</div>
+				</div>
+			</div>
+			
+			<div id="dropbox-index" />
+			%(FILES)s
+			</div>
+		</div>
+		%(DIR_INFO)s
+	</body>
+</html>
