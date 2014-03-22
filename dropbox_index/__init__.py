@@ -32,8 +32,12 @@ import urllib
 import json,mimetypes,codecs
 from optparse import OptionParser
 
+def quote_sharp(s):
+  return urllib.quote(s).replace('#','%23')
+
 reload(sys)
 sys.setdefaultencoding("utf-8")
+
 locale.setlocale(locale.LC_ALL, '')
 LANG, ENCODING = locale.getlocale()
 
@@ -47,6 +51,8 @@ SCRIPT_WWW = 'http://code.google.com/p/kosciak-misc/wiki/DropboxIndex'
 FILES_URL = 'http://dl.dropboxusercontent.com/u/73985358'
 
 JSON_STYLE=dict(encoding='utf-8',indent=4)
+#JSON_STYLE=dict(indent=4)
+
 ICONS = (
 	'%s/icons/back.png' % FILES_URL,
 	'%s/icons/folder.png' % FILES_URL,
@@ -214,8 +220,8 @@ HTML_TABLE_START = '''
 	<tbody>
 '''
 #HTML_BACK = '<tr><td class="name back"><a href="../index.html">..</a></td><td class="size">&nbsp;</td><td class="date">&nbsp;</td></tr>'
-HTML_DIR = '<tr><td class="name dir"><a href="%(file_name)s/index.html">%(file_name)s</a></td><td class="size" sort="%(file_size_sort)s">%(file_size)s</td><td class="date" sort="%(file_time_sort)s">%(file_time)s</td></tr>\n'
-HTML_FILE = '<tr><td class="name file%(file_type)s"><a title=\'%(title)s\' href="%(file_name)s" >%(file_name)s</a></td><td class="size" sort="%(file_size_sort)s">%(file_size)s</td><td class="date" sort="%(file_time_sort)s">%(file_time)s</td></tr>\n'
+HTML_DIR = '<tr><td class="name dir"><a href="%(URI_name)s/index.html">%(file_name)s</a></td><td class="size" sort="%(file_size_sort)s">%(file_size)s</td><td class="date" sort="%(file_time_sort)s">%(file_time)s</td></tr>\n'
+HTML_FILE = '<tr><td class="name file%(file_type)s"><a title=\'%(title)s\' href="%(URI_name)s" >%(file_name)s</a></td><td class="size" sort="%(file_size_sort)s">%(file_size)s</td><td class="date" sort="%(file_time_sort)s">%(file_time)s</td></tr>\n'
 HTML_TABLE_END = '''
 	</tbody>
 </table>
@@ -258,16 +264,20 @@ def get_filetype(file_name,file):
 	global global_back_now
 	filetype = file_name.split('.')[-1].lower()
 	for keys, value in FILE_TYPES.items():
+		URI_name = quote_sharp(file_name)
 		if filetype in keys:
+			try:
+				if value in ['txt', 'code']:
+					global_back_now='<div class="gb"><p>'+codecs.open(file, 'r', encoding='utf-8').read(256).replace('\n','</p><p>')+'</p></div>'
 
-			if value in ['txt', 'code']:
-				global_back_now='<div class="gb"><p>'+codecs.open(file, 'r', encoding='utf-8').read(256).replace('\n','</p><p>')+'</p></div>'
+				if value=='markup':
+					global_back_now='<iframe class="gb" src="'+URI_name+'"> </iframe>'
 
-			if value=='markup':
-				global_back_now='<iframe class="gb" src="'+urllib.quote(file_name)+'"> </iframe>'
-
-			if value=='image' :
-				global_back_now='<img class="gb" src='+urllib.quote(file_name)+'> </img>'
+				if value=='image' :
+					global_back_now='<img class="gb" src='+URI_name+'> </img>'
+			except BaseException, e:
+				global_back_now=''
+			
 
 
 
@@ -308,6 +318,7 @@ def html_render(path,fullpath, back, dirs, files, template_file=None,jList=None)
 
 	for file in dirs:
 		file_name = os.path.basename(file)
+		URI_name = quote_sharp(file_name)
 		file_size = len(os.listdir(file))
 		file_size_sort = file_size
 		file_time = time.strftime(DATE_FORMAT, time.localtime(os.path.getmtime(file)))
@@ -336,11 +347,14 @@ def html_render(path,fullpath, back, dirs, files, template_file=None,jList=None)
 			global_back=global_back_now
 
 		if jList:
-			title=jList[i]['info'].decode('ascii')
+			title=jList[i]['info'].decode('utf-8')#.decode('ascii')
 		else:
 			title=''
-
-		index.write(HTML_FILE % locals())
+		URI_name = quote_sharp(file_name)
+		try:
+			index.write(HTML_FILE % locals())
+		except UnicodeDecodeError, e:
+			print(colorize( file+ repr(e), 31)+'\n')
 
 	now = time.strftime(DATE_FORMAT, time.localtime())
 	index.write(HTML_TABLE_END % (now, SCRIPT_WWW, __version__))
@@ -366,35 +380,43 @@ def genList(files,json_mode):
 
 		if json_mode=='i':
 			if os.path.exists(os.path.dirname(files[0]) + '/fileList.json'):
-				lastInfo=json.load(codecs.open(os.path.dirname(files[0]) + '/fileList.json','r',encoding='utf-8'))
+				f = codecs.open(os.path.dirname(files[0]) + '/fileList.json','r',encoding='utf-8')
+				#f = open(os.path.dirname(files[0]) + '/fileList.json','r')
+				#print os.path.dirname(files[0]) + '/fileList.json'
+				lastInfo=json.loads(f.read())
 			else:
 				lastInfo=[]
 				anyMod = True
 		for file in files:
-			item={'path' :os.path.basename(file)}
-			ext=os.path.splitext(file)[1]
-			item['mime']=mimetypes.types_map[ext] if mimetypes.types_map.has_key(ext) else '*/*'
-			#print(file)
-			if (json_mode=='s') or (json_mode=='i'):
-				st=os.stat(file)
-				item['st_size']=st.st_size
-				item['st_ctime']=int(st.st_ctime)
-				item['st_mtime']=int(st.st_mtime)
-				#item['stat']=dict(os.stat(file))
-			if json_mode=='i':
-				modified=True
-				ufn=os.path.basename(file).decode('utf-8')
-				for i in lastInfo:
-					if (i['path']==ufn) and i.has_key('st_mtime') and i.has_key('info') and (i['st_mtime']==item['st_mtime']):
-						modified=False
-						break
-				if modified:
-					anyMod = True
-					print(colorize('{} modified'.format(file),33))
-					item['info']=os.popen('file -bLn "'+file+'"').read().rstrip()
-				else:
-					item['info']=i['info']
-			r.append(item)
+			try:
+				file.encode('utf-8')
+			except UnicodeDecodeError, e:
+				print(colorize( file+ repr(e), 31)+'\n')
+			else:
+				item={'path' :os.path.basename(file)}
+				ext=os.path.splitext(file)[1]
+				item['mime']=mimetypes.types_map[ext] if mimetypes.types_map.has_key(ext) else '*/*'
+				#print(file)
+				if (json_mode=='s') or (json_mode=='i'):
+					st=os.stat(file)
+					item['st_size']=st.st_size
+					item['st_ctime']=int(st.st_ctime)
+					item['st_mtime']=int(st.st_mtime)
+					#item['stat']=dict(os.stat(file))
+				if json_mode=='i':
+					modified=True
+					ufn=os.path.basename(file).encode('utf-8')
+					for i in lastInfo:
+						if (i['path']==ufn) and i.has_key('st_mtime') and i.has_key('info') and (i['st_mtime']==item['st_mtime']):
+							modified=False
+							break
+					if modified:
+						anyMod = True
+						print(colorize('{} modified'.format(file),33))
+						item['info']=os.popen('file -bLn "'+file+'"').read().rstrip()
+					else:
+						item['info']=i['info']
+				r.append(item)
 	return anyMod, r
 
 def crawl(path, fullpath,back=None, recursive=False, template_file=None, json_mode='n'):
@@ -426,10 +448,16 @@ def crawl(path, fullpath,back=None, recursive=False, template_file=None, json_mo
 	if json_mode!='n':
 		mod, jList=genList(files,json_mode);
 		if mod:
-			fj=open(path+'/fileList.json','w')
+			fj=codecs.open(path+'/fileList.json','w', encoding='utf-8')
+			#fj=open(path+'/fileList.json','w')
+			#print json.dumps(jList, encoding="utf-8")
 			fj.write(json.dumps(jList,**JSON_STYLE))
+			#json.dump(jList, fj, **JSON_STYLE)
 			fj.close()
 
+			html_render(path,fullpath, back, dirs, files, template_file,jList)
+			print colorize('Created index.html for %s' % os.path.realpath(path),34)
+		elif not(os.path.exists(path+'/index.html')):
 			html_render(path,fullpath, back, dirs, files, template_file,jList)
 			print colorize('Created index.html for %s' % os.path.realpath(path),34)
 
@@ -439,16 +467,19 @@ def crawl(path, fullpath,back=None, recursive=False, template_file=None, json_mo
 				item.update({'path':dir.split('/')[-1]+'/'+item['path']})
 				jList.append(item)
 
+		#fj=codecs.open(path+'/fileList.json','w', encoding='utf-8')
 		fj=open(path+'/fileList_sub.json','w')
 		fj.write(json.dumps(jList,**JSON_STYLE))
 		fj.close()
-		if mod: print(colorize('fileList.json created for {}'.format(path),34))
+		if mod: 
+			print(colorize('fileList.json created for {}'.format(path),34))
 		return jList
 	else:
 		html_render(path,fullpath, back, dirs, files, template_file)
 		print colorize('Created index.html for %s' % os.path.realpath(path),34)
 		for dir in dirs:
 			crawl(dir,fullpath+[dir.split('/')[-1]], path, recursive, template_file,json_mode)
+
 
 
 
