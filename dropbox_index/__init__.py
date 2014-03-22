@@ -21,8 +21,8 @@
 # famfamfam's "Silk" icon set - http://www.famfamfam.com/lab/icons/silk/
 #
 
-__author__ = "Wojciech 'KosciaK' Pietrzok (kosciak@kosciak.net), Tommy MacWilliam (macwilliamt@gmail.com)"
-__version__ = "0.4.3"
+__author__ = "...."
+__version__ = "...."
 
 import sys
 import os
